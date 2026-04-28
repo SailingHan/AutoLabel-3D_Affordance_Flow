@@ -1,6 +1,6 @@
 <div align="center">
 
-# Masked-Role TraceForge
+# AutoLabel-3D_Affordance_Flow
 
 **Semantic role-aware 2D/3D trajectory generation for robot and human manipulation videos.**
 
