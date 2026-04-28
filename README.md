@@ -1,32 +1,32 @@
 <div align="center">
 
-# Masked-Role TraceForge Pipeline
+# Masked-Role TraceForge
 
 **Semantic role-aware 2D/3D trajectory generation for robot and human manipulation videos.**
 
 <p>
-  <a href="#quick-start"><img alt="Quick Start" src="https://img.shields.io/badge/Quick%20Start-Ready-2ea44f?style=for-the-badge" /></a>
-  <a href="#license"><img alt="License" src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" /></a>
-  <img alt="Python" src="https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white" />
-  <img alt="CUDA" src="https://img.shields.io/badge/CUDA-Required-76B900?style=for-the-badge&logo=nvidia&logoColor=white" />
+  <a href="#quick-start"><img alt="Quick Start" src="https://img.shields.io/badge/quick%20start-ready-1f6feb?style=flat&labelColor=0d1117" /></a>
+  <img alt="Python" src="https://img.shields.io/badge/python-3.11-3776AB?style=flat&logo=python&logoColor=white&labelColor=0d1117" />
+  <img alt="CUDA" src="https://img.shields.io/badge/cuda-required-76B900?style=flat&logo=nvidia&logoColor=white&labelColor=0d1117" />
+  <a href="#license"><img alt="License" src="https://img.shields.io/badge/license-MIT-f85149?style=flat&labelColor=0d1117" /></a>
 </p>
 
 <p>
-  <img alt="TraceForge" src="https://img.shields.io/badge/Core-TraceForge-black?style=flat-square" />
-  <img alt="GroundingDINO" src="https://img.shields.io/badge/Detection-GroundingDINO-orange?style=flat-square" />
-  <img alt="SAM2" src="https://img.shields.io/badge/Segmentation-SAM2-green?style=flat-square" />
-  <img alt="LLM" src="https://img.shields.io/badge/LLM-Multi--Provider-purple?style=flat-square" />
-  <img alt="Teacher Target" src="https://img.shields.io/badge/Output-2D%2F3D%20Teacher%20Targets-lightgrey?style=flat-square" />
+  <img alt="TraceForge" src="https://img.shields.io/badge/TraceForge-tracking-8b949e?style=flat&labelColor=0d1117" />
+  <img alt="GroundingDINO" src="https://img.shields.io/badge/GroundingDINO-detection-f97316?style=flat&labelColor=0d1117" />
+  <img alt="SAM2" src="https://img.shields.io/badge/SAM2-segmentation-22c55e?style=flat&labelColor=0d1117" />
+  <img alt="LLM" src="https://img.shields.io/badge/LLM-multi--provider-a855f7?style=flat&labelColor=0d1117" />
+  <img alt="Teacher Targets" src="https://img.shields.io/badge/output-2D%2F3D%20teacher%20targets-06b6d4?style=flat&labelColor=0d1117" />
 </p>
 
 <p>
   <a href="#overview">Overview</a> ·
   <a href="#highlights">Highlights</a> ·
-  <a href="#pipeline">Pipeline</a> ·
   <a href="#quick-start">Quick Start</a> ·
   <a href="#usage">Usage</a> ·
   <a href="#bridgedata-branch">BridgeData</a> ·
   <a href="#validation">Validation</a> ·
+  <a href="#citation">Citation</a> ·
   <a href="#license">License</a>
 </p>
 
@@ -36,7 +36,7 @@
 
 ## Overview
 
-`Masked-Role TraceForge Pipeline` is a lightweight workflow layer built around **TraceForge**, **GroundingDINO**, **SAM2**, and an OpenAI-compatible multimodal LLM API.
+`Masked-Role TraceForge` is a lightweight workflow layer built around **TraceForge**, **GroundingDINO**, **SAM2**, and an OpenAI-compatible multimodal LLM API.
 
 It converts raw robot or human manipulation videos into **role-aware 2D/3D motion traces** that can be used as self-supervised teacher targets for:
 
@@ -50,7 +50,7 @@ The core design principle is:
 
 > Keep the official TraceForge tracking backbone intact, and replace only the query source with task-relevant, mask-constrained role sampling.
 
-Instead of sampling query points from the entire image, this pipeline first identifies semantic interaction roles such as `hand`, `tool`, and `target`, generates foreground masks for these roles, and then tracks only task-relevant points through TraceForge.
+Instead of sampling query points from the entire image, this workflow first identifies semantic interaction roles such as `hand`, `tool`, and `target`, generates foreground masks for these roles, and then tracks only task-relevant points through TraceForge.
 
 ---
 
@@ -85,36 +85,27 @@ Instead of sampling query points from the entire image, this pipeline first iden
 
 ---
 
-## Pipeline
+## How It Works
 
-```mermaid
-flowchart TD
-    A[Raw robot / human videos] --> B[Episode standardization]
-    B --> C[LLM semantic parsing]
-    C --> D[GroundingDINO role detection]
-    D --> E[SAM2 role segmentation]
-    E --> F[Masked-role query sampling]
-    F --> G[TraceForge PointTracker3D]
-    G --> H[Role-aware 2D/3D traces]
-    H --> I[Teacher target export]
+The workflow is organized around a conservative modification of TraceForge:
 
-    B --> B1[RGB frames]
-    B --> B2[Task context]
-    B --> B3[Action / state arrays]
-    B --> B4[Camera metadata]
+1. **Standardize videos into local episodes.**  
+   Raw robot or human videos are converted into an episode layout containing RGB frames, task context, optional actions/states, and optional camera metadata.
 
-    C --> C1[Action]
-    C --> C2[Hand / gripper]
-    C --> C3[Tool]
-    C --> C4[Target]
-    C --> C5[Interaction]
+2. **Parse task semantics.**  
+   A multimodal LLM extracts task-level semantics such as `action`, `tool`, `target`, and `interaction`.
 
-    I --> I1[selected_traces.npy]
-    I --> I2[hand_flow.npy]
-    I --> I3[tool_flow.npy]
-    I --> I4[target_flow.npy]
-    I --> I5[teacher_targets.npz]
-```
+3. **Generate role masks.**  
+   GroundingDINO proposes role-conditioned boxes and SAM2 converts those boxes into foreground masks.
+
+4. **Sample task-relevant query points.**  
+   Query points are sampled only from the role masks rather than from the full image grid.
+
+5. **Track with TraceForge.**  
+   The official TraceForge tracking path is preserved, including depth/pose processing and `PointTracker3D`.
+
+6. **Export role-aware teacher targets.**  
+   The final outputs preserve role identity through files such as `hand_flow.npy`, `tool_flow.npy`, `target_flow.npy`, and `teacher_targets.npz`.
 
 ---
 
@@ -125,7 +116,7 @@ This workflow is intentionally conservative. It does **not** fork or rewrite the
 | Design choice | Motivation |
 |---|---|
 | Keep TraceForge as an external dependency | Avoid copying or modifying the full tracking stack. |
-| Replace only the 2D query source | Make the pipeline semantic-aware while preserving official tracking behavior. |
+| Replace only the 2D query source | Make the workflow semantic-aware while preserving official tracking behavior. |
 | Fail fast when masks are missing by default | Avoid silently exporting low-quality full-image grid traces as role-aware data. |
 | Preserve role identity in outputs | Let downstream models distinguish hand/tool/target motion explicitly. |
 | Keep BridgeData outputs separate | Prevent probe data, TraceForge outputs, and teacher assets from polluting the mainline. |
@@ -141,7 +132,7 @@ This workflow is intentionally conservative. It does **not** fork or rewrite the
 │
 ├── run_pipeline/
 │   ├── README.md                         # Current workflow bundle documentation
-│   ├── run_traceforge_pipeline.py         # Unified pipeline entrypoint
+│   ├── run_traceforge_pipeline.py         # Unified entrypoint
 │   ├── run_single_traj.py                 # Single-trajectory runner
 │   └── code/
 │       ├── adapters/
@@ -361,7 +352,7 @@ Recommended defaults:
 
 ## Usage
 
-### Full automated pipeline
+### Full automated workflow
 
 ```bash
 python <PATH_TO_WORKSPACE>/run_pipeline/run_traceforge_pipeline.py \
@@ -732,65 +723,39 @@ Everything else should be imported from dependency repositories, especially the 
 
 ---
 
-## Roadmap
+## Citation
 
-- [ ] Add config-file based launch presets.
-- [ ] Add automatic role-mask preview export for every adapted episode.
-- [ ] Add batch-level quality dashboard for teacher-target filtering.
-- [ ] Add real RGB-D alignment module for camera-intrinsic-aware 3D trace correction.
-- [ ] Add downstream data loaders for TraceGen and world-model pretraining.
-- [ ] Add CI-style import checks for external dependency versions.
+If this repository is useful for your research, please cite the associated paper:
+
+```bibtex
+@misc{han2026bridgeact,
+  title         = {BridgeACT: Bridging Human Demonstrations to Robot Actions via Unified Tool-Target Affordances},
+  author        = {Han, Yifan and Liu, Jianxiang and Zhang, Haoyu and Gu, Yuqi and Guo, Yunhan and Lian, Wenzhao},
+  year          = {2026},
+  eprint        = {2604.23249},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.RO}
+}
+```
+
+Please also cite the upstream projects and datasets used in your experiments, including TraceForge, GroundingDINO, SAM2, and the corresponding data sources.
 
 ---
 
-## Citation
+## Acknowledgements
 
-If this workflow is useful for your research, please cite the upstream projects used by this pipeline, including TraceForge, GroundingDINO, SAM2, and any datasets used in your experiments.
+This workflow is inspired by the BridgeACT formulation of unified tool-target affordances for bridging human demonstrations and robot actions. It also relies on open-source components from TraceForge, GroundingDINO, SAM2, and related tracking / segmentation frameworks.
 
-A project-level citation can be added as:
-
-```bibtex
-@misc{masked_role_traceforge_pipeline,
-  title        = {Masked-Role TraceForge Pipeline},
-  author       = {Your Name},
-  year         = {2026},
-  howpublished = {GitHub repository},
-  note         = {Semantic role-aware 2D/3D trajectory generation for robot and human manipulation videos}
-}
-```
+We thank the authors and maintainers of these projects for making their code and models publicly available.
 
 ---
 
 ## License
 
-This project is released under the **MIT License**.
+This repository is released under the **MIT License**. See [`LICENSE`](LICENSE) for details.
 
 > [!IMPORTANT]
 > This license applies to the workflow code in this repository. External dependencies such as TraceForge, GroundingDINO, SAM2, model checkpoints, and datasets may use their own licenses. Please check and comply with their original license terms before redistribution or commercial use.
-
-```text
-MIT License
-
-Copyright (c) 2026 Your Name
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
 
 ---
 
