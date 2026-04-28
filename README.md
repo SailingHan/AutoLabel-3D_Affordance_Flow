@@ -740,15 +740,6 @@ If this repository is useful for your research, please cite the associated paper
 
 Please also cite the upstream projects and datasets used in your experiments, including TraceForge, GroundingDINO, SAM2, and the corresponding data sources.
 
----
-
-## Acknowledgements
-
-This workflow is inspired by the BridgeACT formulation of unified tool-target affordances for bridging human demonstrations and robot actions. It also relies on open-source components from TraceForge, GroundingDINO, SAM2, and related tracking / segmentation frameworks.
-
-We thank the authors and maintainers of these projects for making their code and models publicly available.
-
----
 
 ## License
 
